@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuiz RBT Tingkatan 3: Bab 2 Pembangunan Produk</title>
+    <style>
+        :root {
+            --primary: #E67E22;
+            --secondary: #2980B9;
+            --correct: #2ECC71;
+            --wrong: #E74C3C;
+            --dark: #2C3E50;
+            --light: #FEF9E7;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
+        .quiz-card { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 100%; max-width: 650px; padding: 25px; overflow: hidden; }
+
+        /* Skrin Mula */
+        .start-screen { text-align: center; }
+        .start-screen h1 { color: var(--dark); margin-bottom: 10px; font-size: 1.6rem; }
+        .start-screen p { color: #555; margin-bottom: 20px; font-size: 0.95rem; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--dark); }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; outline: none; }
+        .input-group input:focus { border-color: var(--primary); }
+
+        /* Skrin Kuiz */
+        .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; color: var(--dark); }
+        .timer { background: #ffeaa7; padding: 6px 12px; border-radius: 20px; color: #d63031; font-size: 0.9rem; }
+
+        .progress-container { background: #e0e0e0; height: 10px; border-radius: 5px; margin-bottom: 20px; overflow: hidden; }
+        .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
+
+        .question-text { font-size: 1.1rem; color: var(--dark); margin-bottom: 20px; line-height: 1.4; font-weight: 600; }
+
+        /* Pilihan Jawapan Objektif & Dropdown */
+        .options-grid { display: grid; gap: 10px; margin-bottom: 15px; }
+        .option-btn { background: var(--light); border: 2px solid #f9e79f; border-radius: 12px; padding: 12px 15px; text-align: left; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; color: var(--dark); }
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #fef5e7; }
+        .option-btn.correct { background: #d4edda !important; border-color: var(--correct) !important; color: #155724; font-weight: bold; }
+        .option-btn.wrong { background: #f8d7da !important; border-color: var(--wrong) !important; color: #721c24; }
+
+        .select-option { width: 100%; padding: 12px; border: 2px solid #f9e79f; border-radius: 12px; background: var(--light); font-size: 1rem; color: var(--dark); margin-bottom: 15px; outline: none; }
+
+        .explanation-box { background: #ebf5fb; border-left: 5px solid var(--secondary); padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; color: #1b4965; display: none; line-height: 1.4; }
+
+        /* Butang Utama */
+        .btn-main { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 25px; font-size: 1rem; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; }
+        .btn-main:hover { background: #d35400; }
+        .btn-main:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Skrin Keputusan */
+        .result-screen { text-align: center; display: none; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: var(--secondary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 20px auto; flex-direction: column; }
+        .score-circle span { font-size: 0.8rem; font-weight: normal; }
+
+        /* Papan Skor */
+        .leaderboard-box { margin-top: 25px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; max-height: 200px; overflow-y: auto; }
+        .leaderboard-box h3 { margin-bottom: 10px; font-size: 1rem; color: var(--dark); border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; border-bottom: 1px dashed #eee; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <!-- Skrin Mula / Isi Nama -->
+    <div id="start-screen" class="start-screen">
+        <h1>Kuiz RBT Tingkatan 3</h1>
+        <p>Bab 2: Pembangunan Produk (50 Soalan)</p>
+        <div class="input-group">
+            <label for="player-name">Masukkan Nama Anda:</label>
+            <input type="text" id="player-name" placeholder="Contoh: Nur Aisyah" autocomplete="off">
+        </div>
+        <button class="btn-main" onclick="startQuiz()">Mula Kuiz</button>
+    </div>
+
+    <!-- Skrin Utama Kuiz -->
+    <div id="quiz-screen" style="display: none;">
+        <div class="header-info">
+            <span id="player-display">Pemain: -</span>
+            <span class="timer" id="timer-display">⏱️ Masa: 45:00</span>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="header-info" style="margin-bottom: 10px;">
+            <span id="question-number">Soalan 1/50</span>
+            <span id="score-live">Markah: 0</span>
+        </div>
+
+        <div class="question-text" id="question-text">Teks soalan akan dipaparkan di sini...</div>
+
+        <!-- Pilihan Soalan Objektif -->
+        <div class="options-grid" id="options-container"></div>
+
+        <!-- Pilihan Soalan Subjektif / Dropdown -->
+        <div id="dropdown-container" style="display: none;">
+            <select id="dropdown-select" class="select-option">
+                <option value="">-- Pilih Jawapan Yang Betul --</option>
+            </select>
+        </div>
+
+        <div class="explanation-box" id="explanation-box"></div>
+
+        <button class="btn-main" id="next-btn" onclick="nextQuestion()" disabled>Seterusnya</button>
+    </div>
+
+    <!-- Skrin Keputusan & Leaderboard -->
+    <div id="result-screen" class="result-screen">
+        <h2>Tahniah! Kuiz Tamat</h2>
+        <p id="final-player-name" style="margin-top: 5px; color: #555;"></p>
+        
+        <div class="score-circle" id="score-circle">
+            <div id="final-score">0</div>
+            <span id="final-percentage">0%</span>
+        </div>
+
+        <p id="feedback-text" style="font-weight: bold; margin-bottom: 15px; color: var(--dark);"></p>
+
+        <button class="btn-main" onclick="location.reload()">Cuba Lagi</button>
+
+        <div class="leaderboard-box">
+            <h3>🏆 Papan Skor Kedudukan (Leaderboard)</h3>
+            <div id="leaderboard-list">Tiada rekod lagi.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Data Soalan RBT Tingkatan 3 Bab 2 (30 Objektif + 20 Padanan/Subjektif)
+// Jawapan betul disusun secara rawak pada pilihan A, B, C, atau D
+const rawQuestions = [
+    // 30 SOALAN OBJEKTIF (1 - 30)
+    { type: 'mcq', q: "1. Apakah tujuan utama menjalankan Kajian Keperluan Pelanggan sebelum menghasilkan produk?", options: ["Menenentukan harga jualan tertinggi", "Mengenal pasti masalah dan keperluan sebenar pengguna", "Memilih warna pembungkusan produk", "Menghasil lakaran akhir 3D"], correctText: "Mengenal pasti masalah dan keperluan sebenar pengguna", exp: "Kajian keperluan pelanggan bertujuan mengenal pasti masalah, keperluan, dan kehendak sebenar pengguna." },
+    { type: 'mcq', q: "2. Dokumen penyataan masalah yang mengandungi maklumat asas projek antara pereka dengan pelanggan dinamakan...", options: ["Jadual kerja", "Borang maklum balas", "Projek brief", "Nisbah skala"], correctText: "Projek brief", exp: "Projek brief ialah dokumen perancangan asas yang menyenaraikan keperluan reka bentuk." },
+    { type: 'mcq', q: "3. Konsep 'Form follows function' bermaksud...", options: ["Bentuk luar lebih penting daripada fungsi", "Fungsi ditentukan oleh keindahan visual", "Reka bentuk mengikut fungsi utama produk", "Produk dihasilkan tanpa sebarang fungsi"], correctText: "Reka bentuk mengikut fungsi utama produk", exp: "Form follows function bermaksud reka bentuk fizikal produk dicipta untuk memenuhi fungsi utamanya." },
+    { type: 'mcq', q: "4. Manakala konsep 'Function follows form' memberi penekanan utama kepada...", options: ["Reka bentuk estetik dan bentuk fizikal produk", "Pengurangan kos bahan fizikal", "Ketahanan jangka hayat motor", "Fungsi elektronik dalaman sahaja"], correctText: "Reka bentuk estetik dan bentuk fizikal produk", exp: "Function follows form mengutamakan bentuk fizikal atau nilai estetik produk terlebih dahulu." },
+    { type: 'mcq', q: "5. Pembentukan gabungan asas teknologi dalam pembangunan produk perlulah sekurang-kurangnya menggabungkan...", options: ["Satu bidang sahaja", "Dua bidang ilmu teknologi", "Lima bidang berbeza", "Sepuluh komponen elektronik"], correctText: "Dua bidang ilmu teknologi", exp: "Silibus menetapkan gabungan sekurang-kurangnya 2 asas teknologi (cth: Elektrik + Mekanikal)." },
+    { type: 'mcq', q: "6. Antara berikut, yang manakah BUKAN elemen reka bentuk?", options: ["Garisan", "Warna", "Tekstur", "Keseimbangan"], correctText: "Keseimbangan", exp: "Keseimbangan ialah PRINSIP reka bentuk, manakala garisan, warna, dan tekstur ialah ELEMEN." },
+    { type: 'mcq', q: "7. Antara berikut, yang manakah merupakan PRINSIP reka bentuk?", options: ["Rupa", "Harmoni", "Saiz", "Ruang"], correctText: "Harmoni", exp: "Harmoni ialah Prinsip reka bentuk. Rupa, Saiz, dan Ruang merupakan Elemen reka bentuk." },
+    { type: 'mcq', q: "8. Lakaran 3D membolehkan pereka dan pelanggan melihat produk dalam sudut pandangan...", options: ["Panjang dan lebar sahaja", "Pandangan atas sahaja", "Panjang, lebar dan kedalaman (3 dimensi)", "Tekstur permukaan sahaja"], correctText: "Panjang, lebar dan kedalaman (3 dimensi)", exp: "Lakaran 3D memaparkan bentuk sebenar dengan 3 dimensi: panjang, lebar, dan kedalaman." },
+    { type: 'mcq', q: "9. Teknik 'Rendering' pada lakaran produk berfungsi untuk...", options: ["Menunjukkan pencahayaan, bayang-bayang dan tekstur objek", "Mengira bajet kos bahan secara automatik", "Menukar skala ukuran milimeter ke meter", "Menghapus garisan draf"], correctText: "Menunjukkan pencahayaan, bayang-bayang dan tekstur objek", exp: "Rendering memberi kesan visual yang realistik seperti pencahayaan, bayangan, dan tekstur." },
+    { type: 'mcq', q: "10. Penggunaan Carta Gantt dalam Jadual Kerja bertujuan untuk...", options: ["Menhitung jumlah untung bersih", "Menyusun urutan aktiviti dan mengawal anggaran tempoh masa", "Membeli alatan pertukangan", "Melakar bentuk awal produk"], correctText: "Menyusun urutan aktiviti dan mengawal anggaran tempoh masa", exp: "Carta Gantt membantu merancang dan memantau perjalanan aktiviti mengikut garis masa." },
+    { type: 'mcq', q: "11. Dalam konsep SMART untuk penyediaan bajet projek, huruf 'S' mewakili...", options: ["Simple (Mudah)", "Standard (Piawai)", "Specific (Khusus)", "Secret (Rahsia)"], correctText: "Specific (Khusus)", exp: "S = Specific (Penetapan tujuan projek secara khusus)." },
+    { type: 'mcq', q: "12. Dalam konsep SMART, huruf 'M' membawa maksud...", options: ["Measurable (Boleh diukur)", "Maximum (Maksimum)", "Market (Pasaran)", "Material (Bahan)"], correctText: "Measurable (Boleh diukur)", exp: "M = Measurable (Pengukuran pengagihan kewangan/kos)." },
+    { type: 'mcq', q: "13. Apakah yang dimaksudkan dengan 'Mock-up'?", options: ["Model siap yang dijual di pasaran", "Fail pengaturcaraan C++", "Lakaran 2D berwarna", "Model olahan saiz sebenar/berskala tanpa fungsi sebenar"], correctText: "Model olahan saiz sebenar/berskala tanpa fungsi sebenar", exp: "Mock-up dibuat untuk melihat bentuk fizikal visual sahaja tanpa fungsi mekanikal/elektronik sebenar." },
+    { type: 'mcq', q: "14. Apakah perbezaan utama antara Mock-up dan Prototaip?", options: ["Mock-up dibina menggunakan bahan logam mahal", "Prototaip berfungsi sepenuhnya atau separa berfungsi", "Prototaip tidak mempunyai bentuk fizikal", "Mock-up dijual terus kepada pengguna"], correctText: "Prototaip berfungsi sepenuhnya atau separa berfungsi", exp: "Prototaip ialah model sebenar yang boleh berfungsi untuk pengujian fizikal dan operasi." },
+    { type: 'mcq', q: "15. Ujian Makmal dijalankan dalam persekitaran terkawal untuk...", options: ["Menguji kefungsian dan ketahanan produk mengikut piawaian", "Menjual produk secara terus", "Mendapatkan maklum balas promosi", "Mengurangkan saiz pembungkusan"], correctText: "Menguji kefungsian dan ketahanan produk mengikut piawaian", exp: "Ujian makmal menggunakan kelengkapan khas untuk menguji keselamatan dan kefungsian." },
+    { type: 'mcq', q: "16. Ujian Parameter pula merujuk kepada ujian yang dijalankan di...", options: ["Dalam bilik gelap sahaja", "Atas kertas lakaran", "Persekitaran sebenar di mana produk digunakan", "Dalam kilang pembuatan"], correctText: "Persekitaran sebenar di mana produk digunakan", exp: "Ujian parameter menguji produk pada situasi dan persekitaran kegunaan sebenar." },
+    { type: 'mcq', q: "17. Mengapakah cadangan penambahbaikan dibuat selepas penilaian produk?", options: ["Menambah kos pengeluaran", "Memperbaiki kelemahan dan meningkatkan prestasi produk", "Mengubah fungsi asal sepenuhnya", "Mengelakkan produk daripda dijual"], correctText: "Memperbaiki kelemahan dan meningkatkan prestasi produk", exp: "Penambahbaikan dibuat berasaskan dapatan ujian untuk menjadikan produk lebih berkualiti." },
+    { type: 'mcq', q: "18. Nisbah skala 1:2 pada lakaran produk bermaksud...", options: ["Saiz lakaran adalah dua kali ganda saiz sebenar", "Saiz lakaran adalah separuh daripada saiz sebenar", "Saiz lakaran sama dengan saiz sebenar", "Saiz lakaran 10 kali lebih kecil"], correctText: "Saiz lakaran adalah separuh daripada saiz sebenar", exp: "Skala 1:2 bermaksud saiz gambar/lakaran dikecilkan 2 kali ganda daripada saiz fizikal asal." },
+    { type: 'mcq', q: "19. Apakah elemen reka bentuk yang merujuk kepada impak kualiti permukaan objek?", options: ["Garisan", "Ruang", "Tekstur", "Saiz"], correctText: "Tekstur", exp: "Tekstur merujuk kepada sifat permukaan objek (kasar, licin, berkilat, dll)." },
+    { type: 'mcq', q: "20. Apakah prinsip reka bentuk yang mengandungi aspek simetri atau tidak simetri?", options: ["Pengulangan", "Keseimbangan", "Keringkasan", "Penekanan"], correctText: "Keseimbangan", exp: "Keseimbangan terbahagi kepada Keseimbangan Simetri dan Keseimbangan Tidak Simetri." },
+    { type: 'mcq', q: "21. Bahan seperti kadbod, gabus, dan polystyrene sesuai digunakan untuk membuat...", options: ["Litar bersepadu", "Motor elektrik fizikal", "Mock-up", "Bateri ganti"], correctText: "Mock-up", exp: "Bahan mudah dibentuk seperti kadbod dan gabus digunakan untuk membina mock-up asas." },
+    { type: 'mcq', q: "22. Borang kajian keperluan pelanggan mengandungi maklumat berikut, KECUALI...", options: ["Harga pasaran saham syarikat", "Maklumat diri pelanggan", "Latar belakang masalah", "Penambahbaikan yang diingini"], correctText: "Harga pasaran saham syarikat", exp: "Borang kajian berfokus pada profil pelanggan, masalah, dan kehendak produk mereka." },
+    { type: 'mcq', q: "23. Aplikasi Penyelesaian Masalah Inventif dalam pembangunan produk membolehkan pereka...", options: ["Meningkatkan kos bahan produk", "Selesaikan masalah tanpa kesan sampingan", "Meniru produk pesaing sepenuhnya", "Mengabaikan maklumat pelanggan"], correctText: "Selesaikan masalah tanpa kesan sampingan", exp: "Prinsip inventif membantu mengatasi percanggahan fizikal tanpa menjejaskan fungsi lain." },
+    { type: 'mcq', q: "24. Apakah yang dimaksudkan dengan 'A' dalam konsep SMART?", options: ["Action (Tindakan)", "Attainable (Boleh dicapai)", "Actual (Sebenar)", "Accuracy (Ketepatan)"], correctText: "Attainable (Boleh dicapai)", exp: "A = Attainable (Projek dan bajet yang dirancang boleh dicapai)." },
+    { type: 'mcq', q: "25. Apakah yang dimaksudkan dengan 'R' dalam konsep SMART?", options: ["Rapid (Pantas)", "Result (Keputusan)", "Resource (Sumber)", "Realistic (Munasabah)"], correctText: "Realistic (Munasabah)", exp: "R = Realistic (Sesuai dan munasabah mengikut kemampuan kewangan/keupayaan)." },
+    { type: 'mcq', q: "26. Apakah yang dimaksudkan dengan 'T' dalam konsep SMART?", options: ["Total (Jumlah)", "Testing (Ujian)", "Time-bound (Tempoh masa ditetapkan)", "Technique (Teknik)"], correctText: "Time-bound (Tempoh masa ditetapkan)", exp: "T = Time-bound (Projek disiapkan dalam tempoh masa yang dipersetujui)." },
+    { type: 'mcq', q: "27. Alatan utama yang digunakan untuk mencantum bahagian mock-up kadbod ialah...", options: ["Gergaji besi", "Pistol perekat panas (Hot glue gun)", "Mesin larik", "Pepat pemotong logam"], correctText: "Pistol perekat panas (Hot glue gun)", exp: "Pistol perekat panas sangat popular untuk mencantumkan mock-up bahan ringan." },
+    { type: 'mcq', q: "28. Apakah fungsi utama dokumentasi laporan projek pembangunan produk?", options: ["Iklan jualan untuk pelanggan", "Manual pengguna pengguna akhir", "Rujukan dan rekod bukti proses penghasilan produk", "Surat perjanjian pendaftaran lesen"], correctText: "Rujukan dan rekod bukti proses penghasilan produk", exp: "Dokumentasi merekodkan keseluruhan perjalanan projek dari peringkat awal hingga penilaian." },
+    { type: 'mcq', q: "29. Lakaran 2D menunjukkan pandangan produk dari sudut...", options: ["Satu arah pandangan sahaja (seperti pandangan hadapan)", "Semua sudut 360 darjah", "Sudut pandangan isometrik 3D", "Bahagian dalaman sahaja"], correctText: "Satu arah pandangan sahaja (seperti pandangan hadapan)", exp: "Lakaran 2D hanya memaparkan satu dimensi arah fizikal (cth: pandangan atas/sisi)." },
+    { type: 'mcq', q: "30. Elemen 'Nilai' dalam reka bentuk merujuk kepada...", options: ["Harga jualan ringgit produk", "Kesan terang atau gelap sesuatu warna dan ton", "Berat jisim objek", "Gred kualiti bahan keluli"], correctText: "Kesan terang atau gelap sesuatu warna dan ton", exp: "Nilai (Value) ialah impak kadar terang atau gelap sesuatu ton warna." },
+
+    // 20 SOALAN SUBJEKTIF / PADANAN (31 - 50)
+    { type: 'select', q: "31. [Padanan Subjektif] Model olahan saiz sebenar tanpa fungsi fizikal dinamakan...", options: ["Prototaip", "Mock-up", "Lakaran 2D", "Gambar Rajah Blok"], correctText: "Mock-up", exp: "Mock-up dibina untuk melihat rupa bentuk visual secara fizikal sahaja." },
+    { type: 'select', q: "32. [Padanan Subjektif] Model produk yang boleh berfungsi sepenuhnya untuk pengujian dinamakan...", options: ["Mock-up", "Prototaip", "Lakaran 3D", "Borang Brief"], correctText: "Prototaip", exp: "Prototaip dibina lengkap dengan komponen untuk diuji kefungsiannya." },
+    { type: 'select', q: "33. [Padanan Subjektif] Penilaian yang dilakukan di makmal menggunakan peralatan khas ialah...", options: ["Ujian Parameter", "Ujian Makmal", "Ujian Pasaran", "Ujian Suara"], correctText: "Ujian Makmal", exp: "Ujian makmal dijalankan dalam persekitaran yang terkawal." },
+    { type: 'select', q: "34. [Padanan Subjektif] Penilaian produk di lokasi sebenar pengguna dinamakan...", options: ["Ujian Makmal", "Ujian Parameter", "Ujian Teoritis", "Ujian Draf"], correctText: "Ujian Parameter", exp: "Ujian parameter menguji ketahanan produk dalam keadaan sebenar harian." },
+    { type: 'select', q: "35. [Padanan Subjektif] Konsep SMART: Huruf 'S' bermaksud...", options: ["Simple", "Systematic", "Specific (Khusus)", "Security"], correctText: "Specific (Khusus)", exp: "Specific bermaksud penetapan objektif projek secara jelas dan khusus." },
+    { type: 'select', q: "36. [Padanan Subjektif] Konsep SMART: Huruf 'M' bermaksud...", options: ["Maximum", "Measurable (Boleh diukur)", "Material", "Marketing"], correctText: "Measurable (Boleh diukur)", exp: "Measurable membolehkan pengukuran pencapaian kos dan hasil diukur." },
+    { type: 'select', q: "37. [Padanan Subjektif] Konsep SMART: Huruf 'A' bermaksud...", options: ["Action", "Accurate", "Attainable (Boleh dicapai)", "Automatic"], correctText: "Attainable (Boleh dicapai)", exp: "Attainable bermaksud sasaran projek munasabah untuk dicapai." },
+    { type: 'select', q: "38. [Padanan Subjektif] Konsep SMART: Huruf 'R' bermaksud...", options: ["Rapid", "Realistic (Munasabah)", "Review", "Research"], correctText: "Realistic (Munasabah)", exp: "Realistic bermaksud projek bertepatan dengan keupayaan sumber." },
+    { type: 'select', q: "39. [Padanan Subjektif] Konsep SMART: Huruf 'T' bermaksud...", options: ["Total", "Testing", "Technical", "Time-bound (Tempoh masa)"], correctText: "Time-bound (Tempoh masa)", exp: "Time-bound mempunyai penetapan tempoh garis masa projek." },
+    { type: 'select', q: "40. [Padanan Subjektif] Kesan bayang-bayang dan pencahayaan pada lakaran dinamakan...", options: ["Lakaran Cepat", "Rendering", "Isometrik", "Carta Gantt"], correctText: "Rendering", exp: "Rendering memberi impak visual 3D yang realistik." },
+    { type: 'select', q: "41. [Padanan Subjektif] Jadual perancangan aktiviti dan masa projek dinamakan...", options: ["Borang Brief", "Carta Gantt / Jadual Kerja", "Senarai Bahan", "Resit Kewangan"], correctText: "Carta Gantt / Jadual Kerja", exp: "Carta Gantt merancang dan mengurus jadual kerja projek." },
+    { type: 'select', q: "42. [Padanan Subjektif] Konsep yang mengutamakan fungsi berbanding bentuk estetik dinamakan...", options: ["Function follows form", "Form follows function", "Design thinking", "Industrial concept"], correctText: "Form follows function", exp: "Bentuk produk direka khusus bagi menyokong fungsi utama." },
+    { type: 'select', q: "43. [Padanan Subjektif] Konsep yang mengutamakan kecantikan bentuk visual luar dahulu dinamakan...", options: ["Form follows function", "Function follows form", "Mechanical logic", "Modular design"], correctText: "Function follows form", exp: "Bentuk atau reka bentuk fizikal diutamakan terlebih dahulu." },
+    { type: 'select', q: "44. [Padanan Subjektif] Unsur seperti 'Kasar, Licin, Berkilat' tergolong di bawah elemen...", options: ["Garisan", "Tekstur", "Bentuk", "Nilai"], correctText: "Tekstur", exp: "Tekstur mentakrifkan sifat permukaan fizikal." },
+    { type: 'select', q: "45. [Padanan Subjektif] Prinsip reka bentuk yang mewujudkan kepelbagaian elemen dinamakan...", options: ["Kesatuan", "Kepelbagaian", "Keringkasan", "Pengulangan"], correctText: "Kepelbagaian", exp: "Kepelbagaian mengelakkan kebosanan visual pada produk." },
+    { type: 'select', q: "46. [Padanan Subjektif] Prinsip reka bentuk yang menjadikan semua elemen kelihatan lengkap dinamakan...", options: ["Kesatuan", "Kontras", "Harmoni", "Keseimbangan"], correctText: "Kesatuan", exp: "Kesatuan menyatukan semua bahagian membentuk tema kukuh." },
+    { type: 'select', q: "47. [Padanan Subjektif] Dokumen maklumat awal antara pelanggan dan pereka dinamakan...", options: ["Laporan Akhir", "Projek Brief", "Sijil Paten", "Manual Pengguna"], correctText: "Projek Brief", exp: "Projek brief menetapkan garis panduan awal perbincangan projek." },
+    { type: 'select', q: "48. [Padanan Subjektif] Nisbah 2:1 pada lakaran bermaksud saiz gambar...", options: ["Separuh daripada saiz sebenar", "Dua kali lebih besar daripada saiz sebenar", "Sama saiz", "Tiga kali lebih kecil"], correctText: "Dua kali lebih besar daripada saiz sebenar", exp: "Nisbah 2:1 membesarkan lakaran visual 2 kali ganda." },
+    { type: 'select', q: "49. [Padanan Subjektif] 'Pistol Perekat Panas' tergolong di bawah kategori...", options: ["Bahan Utama", "Peralatan / Alatan Penyambungan", "Komponen Elektronik", "Atur cara Perisian"], correctText: "Peralatan / Alatan Penyambungan", exp: "Pistol perekat panas merupakan alatan pertukangan/pemasangan." },
+    { type: 'select', q: "50. [Padanan Subjektif] Peringkat terakhir dalam pembangunan produk sebelum pengeluaran ialah...", options: ["Membeli Bahan", "Kajian Keperluan", "Cadangan Penambahbaikan", "Melakar 2D"], correctText: "Cadangan Penambahbaikan", exp: "Penambahbaikan dibuat selepas penilaian produk untuk kualiti optimum." }
+];
+
+// Fungsi Rawak Array (Fisher-Yates Shuffle)
+function shuffleArray(array) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Proses rawakkan pilihan jawapan bagi soalan
+const questions = rawQuestions.map(q => {
+    let shuffledOpts = shuffleArray(q.options);
+    let correctIdx = shuffledOpts.indexOf(q.correctText);
+    return {
+        type: q.type,
+        q: q.q,
+        options: shuffledOpts,
+        ans: q.type === 'mcq' ? correctIdx : q.correctText,
+        exp: q.exp
+    };
+});
+
+// Pembolehubah Global
+let currentQIndex = 0;
+let score = 0;
+let playerName = "";
+let timerInterval;
+let timeLeft = 45 * 60; // 45 Minit dalam saat
+let selectedAnswer = null;
+
+// Fungsi Mula Kuiz
+function startQuiz() {
+    const nameInput = document.getElementById('player-name').value.trim();
+    if (!nameInput) {
+        alert("Sila masukkan nama anda terlebih dahulu!");
+        return;
+    }
+    playerName = nameInput;
+    document.getElementById('player-display').innerText = "Pemain: " + playerName;
+
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('quiz-screen').style.display = 'block';
+
+    startTimer();
+    loadQuestion();
+}
+
+// Fungsi Pemasa (Timer)
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        let mins = Math.floor(timeLeft / 60);
+        let secs = timeLeft % 60;
+        document.getElementById('timer-display').innerText = `⏱️ Masa: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            alert("Masa telah tamat!");
+            finishQuiz();
+        }
+    }, 1000);
+}
+
+// Memuatkan Soalan
+function loadQuestion() {
+    selectedAnswer = null;
+    const qData = questions[currentQIndex];
+
+    // Kemaskini UI Header & Progress
+    document.getElementById('question-number').innerText = `Soalan ${currentQIndex + 1}/${questions.length}`;
+    document.getElementById('progress-bar').style.width = `${((currentQIndex + 1) / questions.length) * 100}%`;
+    document.getElementById('question-text').innerText = qData.q;
+    document.getElementById('explanation-box').style.display = 'none';
+    document.getElementById('next-btn').disabled = true;
+
+    const optContainer = document.getElementById('options-container');
+    const dropContainer = document.getElementById('dropdown-container');
+    const dropSelect = document.getElementById('dropdown-select');
+
+    optContainer.innerHTML = '';
+    dropSelect.innerHTML = '<option value="">-- Pilih Jawapan Yang Betul --</option>';
+
+    if (qData.type === 'mcq') {
+        optContainer.style.display = 'grid';
+        dropContainer.style.display = 'none';
+
+        qData.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = `${String.fromCharCode(65 + idx)}. ${opt}`;
+            btn.onclick = () => checkMCQ(idx, btn);
+            optContainer.appendChild(btn);
+        });
+    } else if (qData.type === 'select') {
+        optContainer.style.display = 'none';
+        dropContainer.style.display = 'block';
+
+        let opts = [...qData.options];
+        opts.forEach(opt => {
+            const el = document.createElement('option');
+            el.value = opt;
+            el.innerText = opt;
+            dropSelect.appendChild(el);
+        });
+
+        dropSelect.onchange = () => checkSelect(dropSelect.value);
+    }
+}
+
+// Semak Jawapan Objektif (MCQ)
+function checkMCQ(selectedIndex, btnElement) {
+    if (selectedAnswer !== null) return;
+    selectedAnswer = selectedIndex;
+
+    const qData = questions[currentQIndex];
+    const buttons = document.querySelectorAll('.option-btn');
+
+    if (selectedIndex === qData.ans) {
+        btnElement.classList.add('correct');
+        score += 2; // 2 markah setiap soalan (Jumlah: 100 markah)
+    } else {
+        btnElement.classList.add('wrong');
+        buttons[qData.ans].classList.add('correct');
+    }
+
+    buttons.forEach(b => b.disabled = true);
+    document.getElementById('score-live').innerText = `Markah: ${score}`;
+
+    const expBox = document.getElementById('explanation-box');
+    expBox.innerHTML = `<strong>Penerangan:</strong> ${qData.exp}`;
+    expBox.style.display = 'block';
+
+    document.getElementById('next-btn').disabled = false;
+}
+
+// Semak Jawapan Subjektif/Dropdown
+function checkSelect(selectedValue) {
+    if (!selectedValue) {
+        document.getElementById('next-btn').disabled = true;
+        return;
+    }
+
+    const qData = questions[currentQIndex];
+    selectedAnswer = selectedValue;
+
+    const expBox = document.getElementById('explanation-box');
+    if (selectedValue === qData.ans) {
+        expBox.innerHTML = `<span style="color: var(--correct); font-weight:bold;">✔ Jawapan Betul!</span><br><strong>Penerangan:</strong> ${qData.exp}`;
+        score += 2;
+    } else {
+        expBox.innerHTML = `<span style="color: var(--wrong); font-weight:bold;">✖ Jawapan Kurang Tepat. Jawapan betul: ${qData.ans}</span><br><strong>Penerangan:</strong> ${qData.exp}`;
+    }
+
+    document.getElementById('score-live').innerText = `Markah: ${score}`;
+    expBox.style.display = 'block';
+    document.getElementById('next-btn').disabled = false;
+}
+
+// Beralih ke soalan seterusnya
+function nextQuestion() {
+    currentQIndex++;
+    if (currentQIndex < questions.length) {
+        loadQuestion();
+    } else {
+        finishQuiz();
+    }
+}
+
+// Tamatkan Kuiz & Simpan Rekod
+function finishQuiz() {
+    clearInterval(timerInterval);
+    document.getElementById('quiz-screen').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+
+    document.getElementById('final-player-name').innerText = `Pemain: ${playerName}`;
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-percentage').innerText = `${score}%`;
+
+    const feedback = document.getElementById('feedback-text');
+    if (score >= 80) {
+        feedback.innerText = "Cemerlang! Anda sangat menguasai Bab 2 Pembangunan Produk!";
+        feedback.style.color = "var(--correct)";
+    } else if (score >= 50) {
+        feedback.innerText = "Syabas! Keputusan yang baik, tingkatkan usaha lagi.";
+        feedback.style.color = "var(--primary)";
+    } else {
+        feedback.innerText = "Boleh cuba lagi untuk memantapkan pemahaman anda!";
+        feedback.style.color = "var(--wrong)";
+    }
+
+    saveToLeaderboard(playerName, score);
+    displayLeaderboard();
+}
+
+// Simpan ke localStorage
+function saveToLeaderboard(name, scoreVal) {
+    let leaderboard = JSON.parse(localStorage.getItem('rbt_bab2_leaderboard')) || [];
+    leaderboard.push({ name: name, score: scoreVal, date: new Date().toLocaleDateString() });
+    
+    leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0, 10);
+    localStorage.setItem('rbt_bab2_leaderboard', JSON.stringify(leaderboard));
+}
+
+// Paparkan Leaderboard
+function displayLeaderboard() {
+    let leaderboard = JSON.parse(localStorage.getItem('rbt_bab2_leaderboard')) || [];
+    const container = document.getElementById('leaderboard-list');
+
+    if (leaderboard.length === 0) {
+        container.innerHTML = "Tiada rekod lagi.";
+        return;
+    }
+
+    container.innerHTML = leaderboard.map((item, index) => `
+        <div class="leaderboard-item">
+            <span><strong>#${index + 1} ${item.name}</strong></span>
+            <span>${item.score} / 100 Markah (${item.date})</span>
+        </div>
+    `).join('');
+}
+</script>
+
+</body>
+</html>
